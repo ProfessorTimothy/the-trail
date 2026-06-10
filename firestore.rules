@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// The Trail. Security rules.
+//
+// Anyone signed in (Anonymous Auth signs everyone in automatically) can
+// read and write inside their family's subtree. The family id is taken
+// from the URL ?family= parameter; the app validates and slugs it before
+// using it as a document key, so families cannot collide or escape.
+//
+// We deliberately do not require account ownership: this is a family
+// reading list, not a banking app. The URL is the credential.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /families/{familyId} {
+      // The main family document holds the extras (typed-in profiles)
+      // and the added books.
+      allow read, write: if request.auth != null
+                         && familyId.size() > 0
+                         && familyId.size() <= 60;
+
+      // Per-person marks: each member has one document holding their
+      // read map and star map.
+      match /marks/{memberSlug} {
+        allow read, write: if request.auth != null
+                           && memberSlug.size() > 0
+                           && memberSlug.size() <= 80;
+      }
+    }
+  }
+}
